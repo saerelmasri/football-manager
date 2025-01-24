@@ -1,8 +1,8 @@
 import { User } from "../models/userModel";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { Request, RequestHandler, Response } from "express";
+import { createTeamForUser } from "../utils/createTeamForUser";
 
 dotenv.config();
 
@@ -24,9 +24,12 @@ export const register: RequestHandler = async (req: Request, res: Response) => {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password.trim(), 10);
+    const newUser = await User.create({ email, password });
 
-    const newUser = await User.create({ email, password: hashedPassword });
+    createTeamForUser(newUser.id)
+      .then(() => console.log("Team creation successfully"))
+      .catch((error) => console.log("Error creating team:", error));
+
     const token = jwt.sign(
       {
         id: newUser.id,
@@ -50,8 +53,6 @@ export const register: RequestHandler = async (req: Request, res: Response) => {
 export const login: RequestHandler = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  console.log("Password:", password);
-  
   try {
     const user = await User.findOne({ where: { email } });
     if (!user) {
@@ -60,8 +61,10 @@ export const login: RequestHandler = async (req: Request, res: Response) => {
       });
     }
 
-    const passwordMatched = await bcrypt.compare(password.trim(), user.password);
-    console.log("Hashed:", passwordMatched);
+    const passwordMatched = await User.comparePassword(
+      password.trim(),
+      user.password
+    );
 
     if (!passwordMatched) {
       return res.status(400).json({
