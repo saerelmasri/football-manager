@@ -3,7 +3,13 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
@@ -14,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-// import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { postWithBody } from "@/utils/apis/endpoints";
 
@@ -31,7 +37,7 @@ export default function Auth() {
     message: string;
   }>({ title: "", message: "" });
 
-//   const router = useRouter();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,15 +54,19 @@ export default function Auth() {
         password: password,
       });
 
-      console.log("Response:", response);
-
+      if (response.token) {
+        localStorage.setItem("token", response.token);
+      } else {
+        throw new Error("Token not received.");
+      }
+      
       if (isLogin) {
         setModalContent({
           title: "Login Successful",
           message: "Welcome back to your team management dashboard!",
         });
         setIsModalOpen(true);
-        // setTimeout(() => router.push("/team"), 2000);
+        setTimeout(() => router.push("/team"), 2000);
       } else {
         setModalContent({
           title: "Registration Successful",
@@ -64,11 +74,11 @@ export default function Auth() {
             "Welcome! Your account has been created and your team is being set up.",
         });
         setIsModalOpen(true);
-        // setTimeout(() => router.push("/team-creation"), 2000);
+        setTimeout(() => router.push("/team-creation"), 2000);
       }
     } catch (error: any) {
-        console.log("Error:", error.response.data.message);
-        
+      console.log("Error:", error.response.data.message);
+
       setModalContent({
         title: "Error",
         message: `${error.response.data.message}`,

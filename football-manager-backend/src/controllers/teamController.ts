@@ -115,7 +115,7 @@ export const getPlayersByPosition: RequestHandler = async (
 
     const players = await Player.findAll({
       where: { teamId: team.id, position },
-      attributes: ["id", "name", "position", "transferListed"],
+      attributes: ["id", "name", "position", "transferListed", "isStarting"],
     });
 
     return res.status(200).json({
@@ -179,6 +179,50 @@ export const setPlayerInMarket: RequestHandler = async (
     return res.status(201).json({
       message: "Player listed in the transfer market successfully",
       transfer,
+    });
+  } catch (error) {
+    console.log("errror:", error);
+
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error,
+    });
+  }
+};
+
+// @ts-ignore
+export const setLineUp: RequestHandler = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    // @ts-ignore
+    const userId = req.userId;
+    const { playerId, isStarting } = req.body;
+
+    if (!playerId || typeof isStarting !== "boolean") {
+      return res.status(400).json({
+        message: "Invalid request. 'playerId' and 'isStarting' are required, and 'isStarting' must be a boolean.",
+      });
+    }
+
+    const player = await Player.findByPk(playerId);
+    if (!player) {
+      return res.status(404).json({ message: "Player not found" });
+    }
+
+    const team = await Team.findByPk(player.teamId);
+    if (!team || team.userId !== userId) {
+      return res.status(403).json({
+        message: "You are not authorized to change the lineup of this player",
+      });
+    }
+
+    player.isStarting = isStarting;
+    await player.save();
+
+    return res.status(201).json({
+      message: "Player update in line up successfully",
     });
   } catch (error) {
     console.log("errror:", error);

@@ -97,20 +97,42 @@ export const createTeamForUser = async (userId: number) => {
       { type: "Attacker", count: 5 },
     ];
 
+    let allPlayers: any[] = [];
+
     for (const { type, count } of players) {
       //@ts-ignore
-      const availablePlayers = FOOTBALL_PLAYERS[type];
+      const availablePlayers = [...FOOTBALL_PLAYERS[type]];
+      
+      for (let i = availablePlayers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [availablePlayers[i], availablePlayers[j]] = [availablePlayers[j], availablePlayers[i]];
+      }
 
-      for (let i = 0; i < count; i++) {
-        const playerName = availablePlayers[i % availablePlayers.length];
-
-        await Player.create({
-          teamId: team.id,
+      allPlayers = allPlayers.concat(
+        availablePlayers.slice(0, count).map(playerName => ({
           name: playerName,
           position: type,
-          transferListed: false
-        });
-      }
+        }))
+      );
+    }
+
+    for (let i = allPlayers.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allPlayers[i], allPlayers[j]] = [allPlayers[j], allPlayers[i]];
+    }
+
+    const startingPlayers = new Set(
+      allPlayers.slice(0, 11).map(player => player.name)
+    );
+
+    for (const player of allPlayers) {
+      await Player.create({
+        teamId: team.id,
+        name: player.name,
+        position: player.position,
+        transferListed: false,
+        isStarting: startingPlayers.has(player.name),
+      });
     }
 
     console.log(`Team and players created for userId ${userId}`);

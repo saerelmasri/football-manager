@@ -8,6 +8,7 @@ export class Player extends Model {
   public name!: string;
   public position!: string;
   public transferListed!: boolean;
+  public isStarting!: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -29,6 +30,11 @@ Player.init(
       allowNull: false,
     },
     transferListed: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    isStarting: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
