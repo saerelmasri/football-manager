@@ -13,7 +13,7 @@
     DB_HOST=localhost
     DB_USER=your_username
     DB_PASSWORD=your_password
-    DB_NAME=football_manager_db
+    DB_NAME=footballmanager
     JWT_SECRET=your_jwt_secret
     ```
 
@@ -21,10 +21,10 @@
 
 3. **Set up the MySQL database**:
     - Ensure you have MySQL installed and running locally.
-    - Create a database with the name specified in `.env` (e.g., `football_manager_db`):
+    - Create a database with the name specified in `.env` (e.g., `footballmanager`):
     ```bash
     mysql -u your_username -p
-    CREATE DATABASE football_manager_db;
+    CREATE DATABASE footballmanager;
     ```
 
 4. **Start the backend server**:
