@@ -21,9 +21,6 @@ export default function PlayerCard({
 }: PlayerCardProps) {
   const [loading, setLoading] = useState<boolean>(false);
 
-  console.log("player:", player.askingPrice);
-
-
   const handleToggleLineup = async () => {    
     setLoading(true);
     try {
@@ -46,8 +43,8 @@ export default function PlayerCard({
             : playerImage
         }
         alt={player.position}
-        width={56} // Corresponds to w-14
-        height={56} // Corresponds to h-14
+        width={56}
+        height={56}
         className="rounded-full mb-2"
       />
       <span className="text-sm font-medium">{player.name}</span>
@@ -78,7 +75,7 @@ export default function PlayerCard({
 
       {player.transferListed && (
         <span className="text-xs text-green-600 mt-1">
-          For sale: ${player.askingPrice?.toLocaleString()}
+          Player in market
         </span>
       )}
     </div>
