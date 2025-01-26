@@ -15,7 +15,6 @@ export default function TeamCreation() {
   const router = useRouter();
   const token = localStorage.getItem("token");
 
-
   useEffect(() => {
     const timer = setInterval(() => {
       setProgress((oldProgress) => {
@@ -48,7 +47,7 @@ export default function TeamCreation() {
       console.log("response:", response);
       
 
-      if (response?.message === "Team updated successfully") {
+      if (response?.status === 200) {
         setShowNameModal(false);
         router.push("/team");
       } else {

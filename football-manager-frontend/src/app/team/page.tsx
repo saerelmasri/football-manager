@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // @ts-nocheck
 
 "use client";
@@ -17,68 +16,20 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import PlayerCard from "@/components/PlayerCard";
-import { fetchWithQueryParams, putWithBody } from "@/utils/apis/endpoints";
 import { formattedPrice } from "@/utils/common";
-
-export type Player = {
-  id: number;
-  name: string;
-  position: "Goalkeeper" | "Defender" | "Midfielder" | "Attacker";
-  isStarting: boolean;
-  transferListed: boolean;
-  askingPrice?: number;
-};
-
-export async function fetchTeamData(token: string) {
-  try {
-    const response = await fetchWithQueryParams("/team/", {}, token);
-    return response;
-  } catch (error) {
-    console.error("Failed to fetch team data:", error);
-    throw error;
-  }
-}
-
-const setPlayerForSale = async (
-  playerId: number,
-  askingPrice: number,
-  token: string
-) => {
-  try {
-    const response = await putWithBody(
-      "team/set-player-transfer",
-      { playerId, askingPrice },
-      token
-    );
-    console.log("API response:", response); // Log the response to debug
-    return response;
-  } catch (error) {
-    console.error("Failed to set player for sale:", error);
-    throw error;
-  }
-};
-
-export async function togglePlayerStarting(
-  playerId: number,
-  isStarting: boolean,
-  token: string
-) {
-  try {
-    const response = await putWithBody(
-      "team/set-player-lineup",
-      { playerId, isStarting },
-      token
-    );
-    return response;
-  } catch (error) {
-    console.error("Failed to toggle player starting status:", error);
-    throw error;
-  }
-}
+import {
+  fetchTeamData,
+  removePlayerFromMarket,
+  setPlayerForSale,
+  togglePlayerStarting,
+} from "@/utils/apis/apiCalls";
+import { Player } from "@/utils/types";
 
 export default function TeamDisplay() {
   const [teamData, setTeamData] = useState<{
-    team: { name: string; budget: number; players: Player[] };
+    name: string;
+    budget: number;
+    players: Player[];
   } | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [askingPrice, setAskingPrice] = useState<string>("");
@@ -92,9 +43,9 @@ export default function TeamDisplay() {
       setLoading(true);
       try {
         const teamDataFromAPI = await fetchTeamData(token as string);
-        setTeamData(teamDataFromAPI);
+        setTeamData(teamDataFromAPI.data.team);
       } catch (error) {
-        console.error("Failed to fetch team data:", error);
+        alert(`Failed to fetch team data: ${error?.message}`);
       } finally {
         setLoading(false);
       }
@@ -102,6 +53,8 @@ export default function TeamDisplay() {
 
     loadTeamData();
   }, [token]);
+
+  console.log("Team:", teamData);
 
   if (loading) {
     return (
@@ -111,17 +64,31 @@ export default function TeamDisplay() {
     );
   }
 
-  const handleToggleForSale = (player: Player) => {
+  const handleToggleForSale = async (player: Player) => {
     if (player.transferListed) {
       // Remove from sale
-      setTeamData((prevData) => ({
-        ...prevData!,
-        players: prevData?.team.players.map((player) =>
-          player.id === selectedPlayer?.id
-            ? { ...player, transferListed: false, askingPrice: 0 }
-            : player
-        ),
-      }));
+      try {
+        await removePlayerFromMarket(player.id, token as string);
+
+        setTeamData((prevData) => {
+          if (!prevData) return prevData;
+
+          const updatedPlayers = prevData.players.map((p) =>
+            p.id === player.id
+              ? { ...p, transferListed: false, askingPrice: 0 }
+              : p
+          );
+
+          return {
+            ...prevData,
+            team: { ...prevData, players: updatedPlayers },
+          };
+        });
+        alert("Player removed from the market successfully.");
+      } catch (error) {
+        console.error("Error removing player from the market:", error);
+        alert("Failed to remove player from the market.");
+      }
     } else {
       // Set for sale
       setSelectedPlayer(player);
@@ -139,7 +106,7 @@ export default function TeamDisplay() {
         setTeamData((prevData) => {
           if (!prevData) return prevData;
 
-          const updatedPlayers = prevData.team.players.map((player) =>
+          const updatedPlayers = prevData.players.map((player) =>
             player.id === selectedPlayer.id
               ? {
                   ...player,
@@ -151,7 +118,7 @@ export default function TeamDisplay() {
 
           return {
             ...prevData,
-            team: { ...prevData.team, players: updatedPlayers },
+            team: { ...prevData, players: updatedPlayers },
           };
         });
 
@@ -173,12 +140,12 @@ export default function TeamDisplay() {
       await togglePlayerStarting(player.id, isStarting, token as string);
 
       setTeamData((prevData) => {
-        if (!prevData || !prevData.team.players) {
+        if (!prevData || !prevData.players) {
           console.error("teamData or players not available");
           return prevData;
         }
 
-        const updatedPlayers = prevData.team.players.map((p) =>
+        const updatedPlayers = prevData.players.map((p) =>
           p.id === player.id ? { ...p, isStarting } : p
         );
 
@@ -193,7 +160,7 @@ export default function TeamDisplay() {
         return {
           ...prevData,
           team: {
-            ...prevData.team,
+            ...prevData,
             players: updatedPlayers,
           },
         };
@@ -207,31 +174,31 @@ export default function TeamDisplay() {
   };
 
   const startingPlayers =
-    teamData?.team.players.filter(
-      (player: { isStarting: any }) => player.isStarting
+    teamData?.players.filter(
+      (player: { isStarting: boolean }) => player.isStarting
     ) || [];
 
   const benchPlayers =
-    teamData?.team.players.filter(
-      (player: { isStarting: any }) => !player.isStarting
+    teamData?.players.filter(
+      (player: { isStarting: boolean }) => !player.isStarting
     ) || [];
 
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center p-4 md:p-10">
       <Card className="w-full max-w-full">
         <CardHeader>
-          <CardTitle>{teamData?.team.name}</CardTitle>
+          <CardTitle>{teamData?.name}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="mb-4">
-            Transfer Budget: {formattedPrice(teamData?.team.budget as number)}
+            Transfer Budget: {formattedPrice(teamData?.budget as number)}
           </p>
           <div className="mb-8">
             <h3 className="font-bold mb-2">Starting Lineup</h3>
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {startingPlayers.map(
                 (player: {
-                  id: any;
+                  id: number;
                   name?: string;
                   position?:
                     | "Goalkeeper"
@@ -258,7 +225,7 @@ export default function TeamDisplay() {
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {benchPlayers.map(
                 (player: {
-                  id: any;
+                  id: number;
                   name?: string;
                   position?:
                     | "Goalkeeper"

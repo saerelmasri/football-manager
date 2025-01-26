@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // @ts-nocheck
+
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,88 +16,113 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { fetchWithQueryParams } from "@/utils/apis/endpoints";
+import { fetchWithQueryParams, postWithBody } from "@/utils/apis/endpoints";
 import { formattedPrice } from "@/utils/common";
-
-type Player = {
-  id: number;
-  name: string;
-  team: string;
-  position: string;
-  askingPrice: number;
-};
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Player } from "@/utils/types";
 
 export default function TransferMarket() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [players, setPlayers] = useState<Player[] | null>(null);
-  const [filters, setFilters] = useState({
-    team: "",
-    player: "",
+  const [tempFilters, setTempFilters] = useState({
+    teamName: "",
+    playerName: "",
+    position: "",
+    minPrice: "",
     maxPrice: "",
   });
+  const [filters, setFilters] = useState(tempFilters);
+  const [showDialog, setShowDialog] = useState<boolean>(false);
+  const [dialogMessage, setDialogMessage] = useState<string>("");
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  useEffect(() => {
-    const fetchPlayers = async () => {
-      setLoading(true);
-      setError(null);
+  const fetchPlayers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-      try {
-        const response = await fetchWithQueryParams(
-          "/transfer",
-          {},
-          token as string
-        );
+    try {
+      const response = await fetchWithQueryParams(
+        "/transfer/filter-players",
+        {
+          playerName: filters.playerName || undefined,
+          teamName: filters.teamName || undefined,
+          position: filters.position || undefined,
+          minPrice: filters.minPrice || undefined,
+          maxPrice: filters.maxPrice || undefined,
+        },
+        token as string
+      );
 
-        console.log("response:", response);
-
-        if (response?.message === "Transfer list retrieved successfully") {
-          if (response.transfers && response.transfers.length > 0) {
-            setPlayers(response.transfers);
-          } else {
-            console.warn("No players available in the transfer market.");
-            setPlayers([]); // Ensure it's an empty array if no players are available
-          }
-        } else {
-          throw new Error("Unexpected response status");
-        }
-      } catch (err: any) {
-        console.error("Error fetching players:", err);
-        setError("Failed to fetch players. Please try again later.");
-
-        if (err.response?.status === 401) {
-          alert("Your session has expired. Please log in again.");
-        }
-      } finally {
-        setLoading(false);
+      if (response.status === 200) {
+        setPlayers(response.data.transfers);
+      } else {
+        throw new Error("Unexpected response status");
       }
-    };
+    } catch (err) {
+      console.error("Error fetching players:", err);
+      setError("Failed to fetch players. Please try again later.");
+      setTimeout(() => {
+        setError(null);
+        fetchPlayers();
+      }, 2000);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, token]);
 
+  useEffect(() => {
     if (token) {
       fetchPlayers();
     }
-  }, [token]);
-
-  
+  }, [token, filters, fetchPlayers]);
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
+    setTempFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
-  // const filteredPlayers = players?.filter((player) => {
-  //   return (
-  //     (player.team && player.team.toLowerCase().includes(filters.team.toLowerCase())) &&
-  //     (player.name && player.name.toLowerCase().includes(filters.player.toLowerCase())) &&
-  //     (filters.maxPrice === "" || player.askingPrice <= Number.parseInt(filters.maxPrice))
-  //   );
-  // });
-  
+  const handleSearch = () => {
+    setFilters(tempFilters);
+  };
 
-  const handleBuyPlayer = (playerId: number) => {
-    console.log("Buying player with ID:", playerId);
+  const handleBuyPlayer = async (playerId: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await postWithBody(
+        "/transfer/buy-player",
+        { playerId: playerId },
+        token as string
+      );
+
+      console.log("Response buy:", response);
+      
+      if (response.message) {
+        setDialogMessage("Player purchased successfully!");
+        setShowDialog(true);
+        setFilters({ ...filters });
+      } else {
+        throw new Error("Error buying the player");
+      }
+    } catch (err) {
+      alert(err.response.data.message);
+      setError("Failed to complete purchase. Please try again.");
+      setTimeout(() => {
+        setError(null);
+        fetchPlayers();
+      }, 2000);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -110,23 +135,37 @@ export default function TransferMarket() {
           <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-4">
             <Input
               placeholder="Filter by team"
-              name="team"
-              value={filters.team}
+              name="teamName"
+              value={tempFilters.teamName}
               onChange={handleFilterChange}
             />
             <Input
               placeholder="Filter by player"
-              name="player"
-              value={filters.player}
+              name="playerName"
+              value={tempFilters.playerName}
+              onChange={handleFilterChange}
+            />
+            <Input
+              placeholder="Filter by position"
+              name="position"
+              value={tempFilters.position}
+              onChange={handleFilterChange}
+            />
+            <Input
+              placeholder="Min price"
+              name="minPrice"
+              type="number"
+              value={tempFilters.minPrice}
               onChange={handleFilterChange}
             />
             <Input
               placeholder="Max price"
               name="maxPrice"
               type="number"
-              value={filters.maxPrice}
+              value={tempFilters.maxPrice}
               onChange={handleFilterChange}
             />
+            <Button onClick={handleSearch}>Search</Button>
           </div>
           {loading ? (
             <p>Loading players...</p>
@@ -156,7 +195,7 @@ export default function TransferMarket() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleBuyPlayer(player.id)}
+                        onClick={() => handleBuyPlayer(player.Player.id)}
                       >
                         Buy
                       </Button>
@@ -173,6 +212,17 @@ export default function TransferMarket() {
           <Button>Back to Team</Button>
         </Link>
       </div>
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Success</DialogTitle>
+          </DialogHeader>
+          <p>{dialogMessage}</p>
+          <DialogFooter>
+            <Button onClick={() => setShowDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

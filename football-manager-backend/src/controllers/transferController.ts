@@ -5,43 +5,6 @@ import { Team } from "../models/teamModel";
 import { Op } from "sequelize";
 
 // @ts-ignore
-export const displayAllPlayers: RequestHandler = async (
-  req: Request,
-  res: Response
-) => {
-  try {
-    const transfers = await Transfer.findAll({
-      include: [
-        {
-          model: Player,
-          attributes: ["id", "name", "position"],
-          include: [
-            {
-              model: Team,
-              attributes: ["id", "name"],
-            },
-          ],
-        },
-      ],
-      attributes: ["id", "askingPrice", "createdAt"],
-      order: [["createdAt", "DESC"]],
-    });
-
-    return res.status(200).json({
-      message: "Transfer list retrieved successfully",
-      transfers,
-    });
-  } catch (error) {
-    console.log("errror:", error);
-
-    return res.status(500).json({
-      message: "Internal Server Error",
-      error: error,
-    });
-  }
-};
-
-// @ts-ignore
 export const filterTransfer: RequestHandler = async (
   req: Request,
   res: Response
@@ -163,8 +126,9 @@ export const buyPlayer: RequestHandler = async (
       });
     }
 
-    buyerTeam.budget -= transfer.askingPrice;
-    sellerTeam.budget += transfer.askingPrice;
+    buyerTeam.budget = Number(buyerTeam.budget) - Number(transfer.askingPrice);
+    sellerTeam.budget =
+      Number(sellerTeam.budget) + Number(transfer.askingPrice);
 
     await buyerTeam.save();
     await sellerTeam.save();

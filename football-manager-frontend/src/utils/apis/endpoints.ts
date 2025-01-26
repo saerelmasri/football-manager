@@ -11,7 +11,7 @@ export async function fetchWithQueryParams(
   try {
     const headers: any = token ? { Authorization: `Bearer ${token}` } : {};
     const response = await api.get(endpoint, { params: queryParams, headers });
-    return response.data;
+    return response;
   } catch (error) {
     console.error("GET request failed:", error);
     throw error;
