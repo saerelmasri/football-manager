@@ -107,6 +107,12 @@ export const buyPlayer: RequestHandler = async (
 
     const purchasePrice = transfer.askingPrice * 0.95;
 
+    if (buyerTeam.budget < purchasePrice) {
+      return res.status(400).json({
+        message: "Insufficient funds to purchase the player",
+      });
+    }
+
     const buyerPlayerCount = await Player.count({
       where: { teamId: buyerTeam.id },
     });
