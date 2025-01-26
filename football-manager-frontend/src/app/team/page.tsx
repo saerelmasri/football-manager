@@ -81,7 +81,7 @@ export default function TeamDisplay() {
 
           return {
             ...prevData,
-            team: { ...prevData, players: updatedPlayers },
+            players: updatedPlayers,
           };
         });
         alert("Player removed from the market successfully.");
@@ -136,35 +136,33 @@ export default function TeamDisplay() {
   const handleToggleLineup = async (player: Player, isStarting: boolean) => {
     setLineupLoading(true);
 
+    const currentStartingLineUp =
+      teamData?.players.filter((p) => p.isStarting).length || 0;
+
+    if (!player.isStarting && isStarting && currentStartingLineUp >= 11) {
+      alert("Cannot add more than 11 players to the starting lineup.");
+      setLineupLoading(false);
+      return;
+    }
+
+    setTeamData((prevData) => {
+      if (!prevData || !prevData.players) {
+        console.error("teamData or players not available");
+        return prevData;
+      }
+
+      const updatedPlayers = prevData.players.map((p) =>
+        p.id === player.id ? { ...p, isStarting } : p
+      );
+
+      return {
+        ...prevData,
+        players: updatedPlayers, 
+      };
+    });
+
     try {
       await togglePlayerStarting(player.id, isStarting, token as string);
-
-      setTeamData((prevData) => {
-        if (!prevData || !prevData.players) {
-          console.error("teamData or players not available");
-          return prevData;
-        }
-
-        const updatedPlayers = prevData.players.map((p) =>
-          p.id === player.id ? { ...p, isStarting } : p
-        );
-
-        const currentStartingLineUp = updatedPlayers.filter(
-          (p) => p.isStarting
-        ).length;
-        if (!player.isStarting && isStarting && currentStartingLineUp > 11) {
-          alert("Cannot add more than 11 players to the starting lineup.");
-          return prevData;
-        }
-
-        return {
-          ...prevData,
-          team: {
-            ...prevData,
-            players: updatedPlayers,
-          },
-        };
-      });
     } catch (error) {
       console.error("Error toggling lineup:", error);
       alert("Failed to update lineup.");
