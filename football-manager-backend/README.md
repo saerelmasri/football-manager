@@ -32,4 +32,4 @@
     npm run dev
     ```
 
-    - The backend server will run at `http://localhost:3000` (or any port specified in your `.env` file).
+    - The backend server will run at `http://localhost:3001` (or any port specified in your `.env` file).

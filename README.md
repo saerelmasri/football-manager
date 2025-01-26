@@ -47,7 +47,7 @@ This task is a football fantasy manager application where users can create a foo
 ## Tech Stack
 
 - **Backend**: Node.js with Express
-- **Frontend**: React.js using NextJS and styling/component libraries such as Material UI and Tailwind CSS
+- **Frontend**: React.js using NextJS and styling/component libraries such as Shadcn/ui and Tailwind CSS
 - **Database**: Using MySQL for this project but locally. You will need to start the server locally, set up your credentials in a new `.env` file inside the backend folder, and start testing the endpoints.
 - **Authentication**: JWT
 - **Version Control**: Git (GitHub repository)
@@ -77,8 +77,12 @@ This task is a football fantasy manager application where users can create a foo
    - Built features to list players for transfer, search, and filter players.
    - Implemented the buy player functionality at 95% of their asking price.
 
-5. **Styling & UI Design** - 0 hours
-   - No started yet
+5. **Styling & UI Design** - 8 hours
+   - Completed the design and styling for the full user flow, including:
+     - User Registration/Login - 2 hours
+     - Team Creation (team display and budget) - 3 hours
+     - Transfer Market (searching, filtering, and player management) - 3 hours
+   - Implemented necessary components and styled the app using Shadcn/ui and Tailwind CSS to ensure a clean and user-friendly interface.
 
 6. **Testing and Bug Fixing** - Throughout the project
     - Spent time debugging and testing each endpoint (backend) and frontend functionality.
